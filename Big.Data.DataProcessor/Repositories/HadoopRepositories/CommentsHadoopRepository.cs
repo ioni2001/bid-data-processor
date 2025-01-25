@@ -38,7 +38,7 @@ public class CommentsHadoopRepository : ICommentsHadoopRepository
 
         }
 
-        _logger.LogInformation("Retrieved {Count} comments from HDFS", comments.Count);
+        //_logger.LogInformation("Retrieved {Count} comments from HDFS", comments.Count);
         return comments;
     }
 }

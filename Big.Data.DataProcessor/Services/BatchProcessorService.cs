@@ -8,11 +8,19 @@ public class BatchProcessorService : IBatchProcessorService
 {
     private readonly ILogger<BatchProcessorService> _logger;
     private readonly ICommentsHadoopRepository _commentsHadoopRepository;
+    private readonly IPredictionService _predictionService;
+    private readonly MetricsService _metricsService;
 
-    public BatchProcessorService(ILogger<BatchProcessorService> logger, ICommentsHadoopRepository commentsHadoopRepository)
+    public BatchProcessorService(
+        ILogger<BatchProcessorService> logger,
+        ICommentsHadoopRepository commentsHadoopRepository,
+        IPredictionService predictionService,
+        MetricsService metricsService)
     {
         _logger = logger;
         _commentsHadoopRepository = commentsHadoopRepository;
+        _predictionService = predictionService;
+        _metricsService = metricsService;
     }
 
     public async Task ProcessCommentsStreamAsync(int batchSize)
@@ -29,12 +37,12 @@ public class BatchProcessorService : IBatchProcessorService
                 break;
             }
 
-            _logger.LogInformation("Received batch number {BatchNumber} of size {BatchSize} from HDFS", batchNumber, batchSize);
+            //_logger.LogInformation("Received batch number {BatchNumber} of size {BatchSize} from HDFS", batchNumber, batchSize);
 
             await ProcessCommentBatchAsync(batch);
             processedCount += batch.Count;
 
-            _logger.LogInformation("Processed batch number {BatchNumber} of size {BatchSize} from HDFS. Total processed: {TotalProcessed}", batchNumber, batchSize, processedCount);
+            //_logger.LogInformation("Processed batch number {BatchNumber} of size {BatchSize} from HDFS. Total processed: {TotalProcessed}", batchNumber, batchSize, processedCount);
 
             batchNumber++;
         }
@@ -45,13 +53,25 @@ public class BatchProcessorService : IBatchProcessorService
         foreach (var comment in comments)
         {
             await ProcessSingleCommentAsync(comment);
+            _metricsService.IncrementBatchProcessedComments();
         }
     }
 
     private async Task ProcessSingleCommentAsync(SocialMediaComment comment)
     {
-        /*_logger.LogInformation(
-                "Processed comment with Id {Id}", comment.Id);*/
+        var predictionResponse = _predictionService.Predict(new PredictionRequest { Text = comment.Comment });
+
+        if (predictionResponse.PredictedClass == 1)
+        {
+            _metricsService.IncrementBatchPositiveComments();
+        }
+        else
+        {
+            _metricsService.IncrementBatchNegativeComments();
+        }
+
+        //_logger.LogInformation("Batch comment from HDFS: {Comment} was labeled as {Result}", comment.Comment, predictionResponse.PredictedClass == 1 ? "Positive" : "Negative");
+
         await Task.CompletedTask;
     }
 }

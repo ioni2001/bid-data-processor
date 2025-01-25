@@ -18,11 +18,11 @@ public class CommentsBatchProcessor : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Started comments batch processing from HDFS...");
+        //_logger.LogInformation("Started comments batch processing from HDFS...");
 
         await _batchProcessorService.ProcessCommentsStreamAsync(DefaultBatchSize);
 
-        _logger.LogInformation("Finished comments batch processing from HDFS...");
+        //_logger.LogInformation("Finished comments batch processing from HDFS...");
 
         await Task.CompletedTask;
     }
